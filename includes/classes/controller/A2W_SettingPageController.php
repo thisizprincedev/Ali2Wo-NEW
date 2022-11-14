@@ -94,6 +94,7 @@ if (!class_exists('A2W_SettingPageController')) {
             global $a2w_settings;
             if (isset($_POST['setting_form'])) {
                 a2w_settings()->auto_commit(false);
+                a2w_set_setting('item_purchase_code', isset($_POST['a2w_item_purchase_code']) ? wp_unslash($_POST['a2w_item_purchase_code']) : '');
 
                 a2w_set_setting('import_language', isset($_POST['a2w_import_language']) ? wp_unslash($_POST['a2w_import_language']) : 'en');
 
@@ -101,10 +102,6 @@ if (!class_exists('A2W_SettingPageController')) {
                     $currency = isset($_POST['a2w_local_currency']) ? wp_unslash($_POST['a2w_local_currency']) : 'USD';
                     a2w_set_setting('local_currency', $currency);
                     update_option('woocommerce_currency', $currency);
-
-                    //the currency exchange rate will change, therefore we have to clear this:
-                    a2w_delete_transient('a2w_currency_exchange_rate');
-                    A2W_ProductShippingMeta::clear_in_all_product();
                 }
 
                 a2w_set_setting('default_product_type', isset($_POST['a2w_default_product_type']) ? wp_unslash($_POST['a2w_default_product_type']) : 'simple');

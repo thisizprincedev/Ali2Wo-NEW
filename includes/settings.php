@@ -40,7 +40,7 @@ if (!class_exists('A2W_Settings')) {
         );
 
         private $default_settings = array(
-            'item_purchase_code' => '000000000000000',
+            'item_purchase_code' => '',
             'aliexpress_access_tokens' => array(),
             'account_type' => 'aliexpress',
             'use_custom_account' => false,

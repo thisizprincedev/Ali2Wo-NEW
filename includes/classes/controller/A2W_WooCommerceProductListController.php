@@ -226,23 +226,12 @@ if (!class_exists('A2W_WooCommerceProductListController')) {
             try {
                 $woocommerce_model = new A2W_Woocommerce();
 
-                A2W_Utils::clear_system_error_messages();
-                $token = A2W_AliexpressToken::getInstance()->defaultToken();
-                if (!$token) {
-                    $msg = sprintf(__('Session token is not found. <a target="_blank" href="%s">Please check our instruction</a>.', 'ali2woo'),
-                        'https://help.ali2woo.com/codex/how-to-get-access-token-from-aliexpress/'
-                        );
-                    A2W_Utils::show_system_error_message($msg);
-                    throw new Exception($msg);
-                }
-
                 $ids = isset($_POST['ids']) ? (is_array($_POST['ids']) ? $_POST['ids'] : array($_POST['ids'])) : array();
 
                 $on_price_changes = a2w_get_setting('on_price_changes');
                 $on_stock_changes = a2w_get_setting('on_stock_changes');
 
                 $products = array();
-               
                 foreach ($ids as $post_id) {
                     $product = $woocommerce_model->get_product_by_post_id($post_id, false);
                     if ($product) {
@@ -253,7 +242,6 @@ if (!class_exists('A2W_WooCommerceProductListController')) {
                 }
 
                 $result = array("state" => "ok", "update_state" => array('ok' => count($ids), 'error' => 0));
-
                 if (count($products) > 0) {
                     $product_ids = array_map(function ($p) {
                         $complex_id = $p['id'] . ';' . $p['import_lang'];
@@ -283,16 +271,7 @@ if (!class_exists('A2W_WooCommerceProductListController')) {
                     $aliexpress_model = new A2W_Aliexpress();
                     $sync_model = new A2W_Synchronize();
 
-                    $tmpArray = array_values($products);
-                    $first_product = array_shift($tmpArray);
-
-                    $result_currency_exchange_rate = $aliexpress_model->update_currency_exchange_rate();
-
-                    if ($result_currency_exchange_rate['state'] === 'error'){
-                        throw new Exception($result_currency_exchange_rate['message']);
-                    }
-
-                    $res = $aliexpress_model->sync_products($product_ids, $token['access_token'],
+                    $res = $aliexpress_model->sync_products($product_ids,
                         array_merge(array('manual_update' => 1, 'pc' => $sync_model->get_product_cnt()), $data)
                     );
                     if ($res['state'] === 'error') {

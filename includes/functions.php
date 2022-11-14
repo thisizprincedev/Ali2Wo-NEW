@@ -67,20 +67,6 @@ if (!function_exists('a2w_error_handler')) {
 
 }
 
-if (!function_exists('a2w_random_str')) {
-    function a2w_random_str(int $length = 12, string $keyspace = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'): string {
-        if ($length < 1) {
-            throw new \RangeException("Length must be a positive integer");
-        }
-        $pieces = [];
-        $max = mb_strlen($keyspace, '8bit') - 1;
-        for ($i = 0; $i < $length; ++$i) {
-            $pieces []= $keyspace[random_int(0, $max)];
-        }
-        return implode('', $pieces);
-    }
-}    
-
 if (!function_exists('a2w_init_error_handler')) {
 
     function a2w_init_error_handler()

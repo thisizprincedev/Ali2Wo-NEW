@@ -9,13 +9,6 @@ if (!class_exists('A2W_Utils')) {
 
     class A2W_Utils
     {
-        public static function show_system_error_message($msg){
-            a2w_set_setting('system_message', array(array('type' => 'error', 'message' => $msg)));
-        }
-
-        public static function clear_system_error_messages(){
-            a2w_set_setting('system_message', array());
-        }
 
         public static function wcae_strack_active()
         {
@@ -530,15 +523,6 @@ if (!class_exists('A2W_Utils')) {
             return !$text ? '_' : $text;
         }
 
-        public static function string_contains_all(string $string, array $words) {
-            foreach($words as $word) {
-                if(!is_string($word) || stripos($string,$word) === false){ 
-                    return false; 
-                }
-            }
-            return true;
-        }
-
         public static function get_product_shipping_info($_product, $quantity = 1, $default_country_to = false, $with_vars = true)
         {
             $woocommerce_model = new A2W_Woocommerce();
@@ -562,23 +546,7 @@ if (!class_exists('A2W_Utils')) {
             // Load only if data not in cache
             // TODO: if no items (empty result) then try load again
             if ($shiping_to_country && $items === false/* !empty($items) */) {
-                A2W_Utils::clear_system_error_messages();
-                $token = A2W_AliexpressToken::getInstance()->defaultToken();
-                if (!$token) {
-                    $msg = sprintf(__('Session token is not found. <a target="_blank" href="%s">Please check our instruction</a>.', 'ali2woo'),
-                        'https://help.ali2woo.com/codex/how-to-get-access-token-from-aliexpress/'
-                        );
-                    A2W_Utils::show_system_error_message($msg);
-                    throw new Exception($msg);
-                }
-
-                $result_currency_exchange_rate = $loader->update_currency_exchange_rate();
-
-                if ($result_currency_exchange_rate['state'] === 'error'){
-                    throw new Exception($result_currency_exchange_rate['message']);
-                }
-
-                $res = $loader->load_shipping_info($token['access_token'], $product['id'], $quantity, $shiping_to_country, $shiping_from_country, $product['price'], $product['price']);
+                $res = $loader->load_shipping_info($product['id'], $quantity, $shiping_to_country, $shiping_from_country, $product['price'], $product['price']);
                 if ($res['state'] !== 'error') {
                     $items = $res['items'];
                     $shipping_meta->save_items($quantity, $shiping_from_country, $shiping_to_country, $items, true);
@@ -659,26 +627,6 @@ if (!class_exists('A2W_Utils')) {
             return $product;
         }
 
-        public static function get_freight_ext( $id = false, $currency = 'USD' ) {
-
-            $freight_ext = '{"p1":"' . number_format( 1, 2 ) . '","p3":"' . $currency . '","disCurrency":"' . $currency . '","p6":""}';
-          
-          /*  $variations  = get_post_meta( $id, '_vi_wad_variations', true );
-            $freight_ext = '';
-            if ( $variations ) {
-                $price_array = array_filter( array_merge( array_column( $variations, 'sale_price' ), array_column( $variations, 'regular_price' ) ) );
-                if ( count( $price_array ) ) {
-                    $min_price = min( $price_array );
-                    if ( $min_price ) {
-                        $min_price   = self::string_to_float( $min_price );
-                        $freight_ext = '{"p1":"' . number_format( $min_price, 2 ) . '","p3":"' . $currency . '","disCurrency":"' . $currency . '","p6":""}';
-                    }
-                }
-            }*/
-    
-            return $freight_ext;
-        }
-
         public static function update_product_shipping($product, $country_from, $country_to, $page, $update_price)
         {
             $country_from = !empty($country_from) ? $country_from : 'CN';
@@ -724,32 +672,16 @@ if (!class_exists('A2W_Utils')) {
                 $loader = new A2W_Aliexpress();
 
                 $country = A2W_ProductShippingMeta::meta_key($country_from, $country_to);
-          
+
                 if (empty($product['shipping_info'][$country])) {
-                    A2W_Utils::clear_system_error_messages();
-                    $token = A2W_AliexpressToken::getInstance()->defaultToken();
-                    if (!$token) {
-                        $msg = sprintf(__('Session token is not found. <a target="_blank" href="%s">Please check our instruction</a>.', 'ali2woo'),
-                        'https://help.ali2woo.com/codex/how-to-get-access-token-from-aliexpress/'
-                        );
-                        A2W_Utils::show_system_error_message($msg);
-                        throw new Exception($msg);
-                    }
-
-                    $result_currency_exchange_rate = $loader->update_currency_exchange_rate();
-
-                    if ($result_currency_exchange_rate['state'] === 'error'){
-                        throw new Exception($result_currency_exchange_rate['message']);
-                    }
-        
-                    $res = $loader->load_shipping_info($token['access_token'], $product['id'], 1, $country_to, $country_from, $page == 'import' ? $product['price_min'] : $product['price'], $page == 'import' ? $product['price_max'] : $product['price']);
+                    $res = $loader->load_shipping_info($product['id'], 1, $country_to, $country_from, $page == 'import' ? $product['price_min'] : $product['price'], $page == 'import' ? $product['price_max'] : $product['price']);
                     if ($res['state'] !== 'error') {
                         $product['shipping_info'][$country] = $res['items'];
                     } else {
                         $product['shipping_info'][$country] = array();
                     }
                 }
-                
+
                 $items = isset($product['shipping_info'][$country]) ? $product['shipping_info'][$country] : array();
 
                 $default_ff_method = a2w_get_setting('fulfillment_prefship');
@@ -793,153 +725,6 @@ if (!class_exists('A2W_Utils')) {
             }
 
             return $product;
-        }
-
-        public static function is_shipping_supported_by_province_city( $country ) {
-            $supportedCountries = array('BR');
-            return in_array( $country, $supportedCountries, true );
-        }
-
-        public static function get_aliexpress_province_code( $country, $state ) {
-            $province_code = array();
-            if ( $country ) {
-                $ali_states = A2W_Country::get_ali_states($country);
-                if ( count( $ali_states ) ) {
-                    if ( $state ) {
-                        $search   = self::strtolower( $state );
-                        $search_1 = array( $search, remove_accents( $search ) );
-                        foreach ( $ali_states['addressList'] as $key => $value ) {
-                            if ( in_array( self::strtolower( $value['n'] ), $search_1, true ) ) {
-                                $province_code = $value;
-                                break;
-                            }
-                        }
-                    } else {
-                        if ( $state === false ) {
-                            $province_code = $ali_states['addressList'];
-                        } else {
-                            $province_code = $ali_states['addressList'][0];
-                        }
-                    }
-                }
-            }
-    
-            return $province_code;
-        }
-
-        public static function get_aliexpress_city_code( $country, $state_code, $city ) {
-            $ali_states = A2W_Country::get_ali_states($country);
-            $city_code  = array();
-            if ( $country && $state_code ) {
-                $found_state = false;
-                foreach ( $ali_states['addressList'] as $key => $value ) {
-                    if ( $state_code === $value['c'] ) {
-                        $found_state = $key;
-                        break;
-                    }
-                }
-                if ( $found_state !== false ) {
-                    if ( isset( $ali_states['addressList'][ $found_state ]['children'] ) && is_array( $ali_states['addressList'][ $found_state ]['children'] ) && count( $ali_states['addressList'][ $found_state ]['children'] ) ) {
-                        if ( $city ) {
-                            $search   = self::strtolower( $city );
-                            $search_1 = array( $search, remove_accents( $search ) );
-                            foreach ( $ali_states['addressList'][ $found_state ]['children'] as $key => $value ) {
-                                if ( in_array( self::strtolower( $value['n'] ), $search_1, true ) ) {
-                                    $city_code = $value;
-                                    break;
-                                }
-                            }
-                        } else {
-                            if ( $city === false ) {
-                                $city_code = $ali_states['addressList'][ $found_state ]['children'];
-                            } else {
-                                $city_code = $ali_states['addressList'][ $found_state ]['children'][0];
-                            }
-                        }
-                    }
-                }
-            }
-    
-            return $city_code;
-        }
-
-        public static function strtolower( $string ) {
-            return function_exists( 'mb_strtolower' ) ? mb_strtolower( $string ) : strtolower( $string );
-        }
-
-        /**
-         * Convert country code from WooCommerce to AliExpress
-         *
-         * @param $country
-         *
-         * @return string
-         */
-        public static function filter_country( $country ) {
-            switch ( $country ) {
-                case 'PT':
-                    $country = 'BR';
-                    break;
-                case 'AQ':
-                case 'BV':
-                case 'IO':
-                case 'CU':
-                case 'TF':
-                case 'HM':
-                case 'IR':
-                case 'IM':
-                case 'SH':
-                case 'PN':
-                case 'SD':
-                case 'SJ':
-                case 'SY':
-                case 'TK':
-                case 'UM':
-                case 'EH':
-                    $country = 'OTHER';
-                    break;
-                case 'AX':
-                    $country = 'ALA';
-                    break;
-                case 'CN':
-                    $country = 'HK';
-                    break;
-                case 'CD':
-                    $country = 'ZR';
-                    break;
-                case 'GG':
-                    $country = 'GGY';
-                    break;
-                case 'JE':
-                    $country = 'JEY';
-                    break;
-                case 'ME':
-                    $country = 'MNE';
-                    break;
-                case 'KP':
-                    $country = 'KR';
-                    break;
-                case 'BL':
-                    $country = 'BLM';
-                    break;
-                case 'MF':
-                    $country = 'MAF';
-                    break;
-                case 'RS':
-                    $country = 'SRB';
-                    break;
-                case 'GS':
-                    $country = 'SGS';
-                    break;
-                case 'TL':
-                    $country = 'TLS';
-                    break;
-                case 'GB':
-                    $country = 'UK';
-                    break;
-                default:
-            }
-
-            return $country;
         }
 
         /**

@@ -158,15 +158,6 @@ if (!class_exists('A2W_SynchProductController')) {
                 $woocommerce_model = new A2W_Woocommerce();
                 $loader = new A2W_Aliexpress();
                 $sync_model = new A2W_Synchronize();
-                A2W_Utils::clear_system_error_messages();
-                $token = A2W_AliexpressToken::getInstance()->defaultToken();
-                if (!$token) {
-                    $msg = sprintf(__('Session token is not found. <a target="_blank" href="%s">Please check our instruction</a>.', 'ali2woo'),
-                        'https://help.ali2woo.com/codex/how-to-get-access-token-from-aliexpress/'
-                        );
-                    A2W_Utils::show_system_error_message($msg);
-                    throw new Exception($msg);
-                }
 
                 $update_per_schedule = apply_filters('a2w_update_per_schedule',
                     a2w_check_defined('A2W_UPDATE_PER_SCHEDULE') ? intval(A2W_UPDATE_PER_SCHEDULE) : $this->update_per_schedule
@@ -188,7 +179,6 @@ if (!class_exists('A2W_SynchProductController')) {
                 $product_map = array();
                 foreach ($product_ids as $product_id) {
                     $product = $woocommerce_model->get_product_by_post_id($product_id, false);
-
                     if ($product) {
                         if (!$product['disable_sync']) {
                             $product['disable_var_price_change'] = $product['disable_var_price_change'] || $on_price_changes !== "update";
@@ -201,18 +191,6 @@ if (!class_exists('A2W_SynchProductController')) {
                     }
                     unset($product);
                 }
-
-                if (!empty($product_map)){
-                    $tmpArray = array_values($product_map);
-                    $first_product = array_shift($tmpArray);
-    
-                    $result_currency_exchange_rate = $loader->update_currency_exchange_rate();
-    
-                    if ($result_currency_exchange_rate['state'] === 'error'){
-                        throw new Exception($result_currency_exchange_rate['message']);
-                    }
-                }
-
                 $pc = $sync_model->get_product_cnt();
                 while ($product_map) {
                     $tmp_product_map = array_slice($product_map, 0, $update_per_request, true);
@@ -236,7 +214,7 @@ if (!class_exists('A2W_SynchProductController')) {
                         return $complex_id;
                     }, $tmp_product_map);
 
-                    $result = $loader->sync_products($product_ids, $token['access_token'], array('pc' => $pc));
+                    $result = $loader->sync_products($product_ids, array('pc' => $pc));
                     if ($result['state'] !== 'error') {
                         foreach ($result['products'] as $product) {
                             if (!empty($tmp_product_map[$product['id']])) {

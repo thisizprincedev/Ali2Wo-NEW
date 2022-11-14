@@ -13,8 +13,6 @@ class A2W_JSON_API_Core_Controller
 
     public function __construct()
     {
-        A2W_Utils::clear_system_error_messages();
-
         $this->product_import_model = new A2W_ProductImport();
         $this->woocommerce_model = new A2W_Woocommerce();
         $this->loader = new A2W_Aliexpress();
@@ -88,16 +86,6 @@ class A2W_JSON_API_Core_Controller
             if (!empty($_REQUEST['currency'])) {
                 $product['currency'] = $_REQUEST['currency'];
             }
-            A2W_Utils::clear_system_error_messages();
-            $token = A2W_AliexpressToken::getInstance()->defaultToken();
-            if (!$token) {
-                $msg = sprintf(__('Session token is not found. <a target="_blank" href="%s">Please check our instruction</a>.', 'ali2woo'),
-                    'https://help.ali2woo.com/codex/how-to-get-access-token-from-aliexpress/'
-                    );
-
-                A2W_Utils::show_system_error_message($msg);
-                $a2w_json_api->error($msg);
-            }
 
             $imported = !!$this->woocommerce_model->get_product_id_by_external_id($product['id']) || !!$this->product_import_model->get_product($product['id']);
             // $post_id = $wpdb->get_var($wpdb->prepare("SELECT post_id FROM $wpdb->postmeta WHERE meta_key='_a2w_external_id' AND meta_value='%s' LIMIT 1", $product['id']));
@@ -106,13 +94,7 @@ class A2W_JSON_API_Core_Controller
                 ? array('data' => array('apd' => json_decode(stripslashes($_POST['apd']))))
                 : array();
 
-                $result_currency_exchange_rate = $this->loader->update_currency_exchange_rate();
-
-                if ($result_currency_exchange_rate['state'] === 'error'){
-                    $a2w_json_api->error($result_currency_exchange_rate['message']);
-                }
-
-                $result = $this->loader->load_product($product['id'], $token['access_token'], $params);
+                $result = $this->loader->load_product($product['id'], $params);
                 if ($result['state'] !== 'error') {
                     $product = array_replace_recursive($product, $result['product']);
                     $product = A2W_PriceFormula::apply_formula($product);

@@ -121,7 +121,7 @@ function chech_products_view() {
                         const price = item.previewFreightAmount ? item.previewFreightAmount.value : item.freightAmount.value;
                         if (p < 0 || price < p) {
                             p = price;
-                            fp = p > 0.009 ? (item.freightAmount.formatedAmount) : 'Free';
+                            fp = p > 0.009 ? (item.localPriceFormatStr || item.priceFormatStr) : 'Free';
                             n = item.company;
                             t = item.time + ' days';
                         }
@@ -145,7 +145,7 @@ function find_min_shipping_price(items, default_method) {
         const price = item.previewFreightAmount ? item.previewFreightAmount.value : item.freightAmount.value;
         if (p < 0 || price < p || item.serviceName == default_method) {
             p = price;
-            result = { 'serviceName': item.serviceName, 'price': price, 'formated_price': price > 0.009 ? (item.freightAmount.formatedAmount) : 'Free', 'name': item.company, 'time': item.time };
+            result = { 'serviceName': item.serviceName, 'price': price, 'formated_price': price > 0.009 ? (item.localPriceFormatStr || item.priceFormatStr) : 'Free', 'name': item.company, 'time': item.time };
             if (item.serviceName == default_method) {
                 return false;
             }
@@ -175,7 +175,7 @@ function fill_modal_shipping_info(product_id, country_from_list, country_from, c
 
     let html = '<table class="shipping-table"><thead><tr><th></th><th><strong>Shipping Method</strong></th><th><strong>Estimated Delivery Time</strong></th><th><strong>Shipping Cost</strong></th></tr></thead><tbody>';
     jQuery.each(tmp_data.shipping, function (i, item) {
-        html += '<tr><td><input type="radio" class="select_method" value="' + item.serviceName + '" name="p-' + product_id + '" id="' + product_id + '-' + item.serviceName + '" ' + (min_shipping_price && item.serviceName == min_shipping_price.serviceName ? 'checked="checked"' : '') + '></td><td><label for="' + product_id + '-' + item.serviceName + '">' + item.company + '</label></td><td><label for="' + product_id + '-' + item.serviceName + '">' + item.time + '</label></td><td><label for="' + product_id + '-' + item.serviceName + '">' + (item.freightAmount.formatedAmount) + '</label></td></tr>';
+        html += '<tr><td><input type="radio" class="select_method" value="' + item.serviceName + '" name="p-' + product_id + '" id="' + product_id + '-' + item.serviceName + '" ' + (min_shipping_price && item.serviceName == min_shipping_price.serviceName ? 'checked="checked"' : '') + '></td><td><label for="' + product_id + '-' + item.serviceName + '">' + item.company + '</label></td><td><label for="' + product_id + '-' + item.serviceName + '">' + item.time + '</label></td><td><label for="' + product_id + '-' + item.serviceName + '">' + (item.localPriceFormatStr || item.priceFormatStr) + '</label></td></tr>';
     });
     html += '</tbody></table>';
     jQuery('.modal-shipping .shipping-method').html(html);
@@ -793,7 +793,7 @@ var Utils = new Utils();
 
                 if (item) {
                     const price = item.previewFreightAmount ? item.previewFreightAmount.value : item.freightAmount.value;
-                    const formated_price = price > 0.009 ? (item.freightAmount.formatedAmount) : 'Free';
+                    const formated_price = price > 0.009 ? (item.localPriceFormatStr || item.priceFormatStr) : 'Free';
 
                     jQuery(product_block).find('.product-card-shipping-info .shipping-title').html(formated_price + ' ' + item.company);
                     jQuery(product_block).find('.product-card-shipping-info .delivery-time').html(item.time + ' days');

@@ -8,6 +8,7 @@
  * @include_action: plugins_loaded
  */
     
+    if ( A2W_Woocommerce::is_woocommerce_installed() ) :
         if ( ! class_exists( 'A2W_ShippingMethod' ) ) :
         
             class A2W_ShippingMethod extends WC_Shipping_Method {
@@ -71,3 +72,5 @@
             }
 
         endif;
+         
+    endif;

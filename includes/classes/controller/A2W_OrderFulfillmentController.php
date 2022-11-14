@@ -14,7 +14,6 @@ if (!class_exists('A2W_OrderFulfillmentController')) {
     class A2W_OrderFulfillmentController extends A2W_AbstractController
     {
         protected static $shipping_fields = array();
-        protected static $additional_shipping_fields = array();
 
         public function __construct()
         {
@@ -87,45 +86,6 @@ if (!class_exists('A2W_OrderFulfillmentController')) {
                     ),
                     'phone'      => array(
                         'label' => __( 'Phone', 'woocommerce' ),
-                    ),
-                )
-            );
-
-            self::$additional_shipping_fields = apply_filters(
-                'woocommerce_admin_additional_shipping_fields',
-                array(
-                    'passport_no' => array(
-                        'label' => __( 'Passport number', 'ali2woo' ),
-                        'show'  => false,
-                    ),
-                    'passport_no_date'  => array(
-                        'label' => __( 'Passport date', 'ali2woo' ),
-                        'show'  => false,
-                    ),
-                    'passport_organization'    => array(
-                        'label' => __( 'Passport issuing agency', 'ali2woo' ),
-                        'show'  => false,
-                    ),
-                    'tax_number'  => array(
-                        'label' => __( 'Tax number', 'ali2woo' ),
-                        'show'  => false,
-                    ),
-                    'foreigner_passport_no'  => array(
-                        'label' => __( 'Foreign tax number (For Koreans, foreigners must fill in the registration number or passport number)', 'ali2woo' ),
-                        'show'  => false,
-                    ),
-                    'is_foreigner'       => array(
-                        'type'  => 'checkbox',
-                        'label' => __( 'Is foreigner?', 'ali2woo' ),
-                        'show'  => false,
-                    ),
-                    'vat_no'   => array(
-                        'label' => __( 'VAT number', 'ali2woo' ),
-                        'show'  => false,
-                    ),
-                    'tax_company'   => array(
-                        'label' => __( 'Company Name', 'ali2woo' ),
-                        'show'  => false,
                     ),
                 )
             );
@@ -785,7 +745,9 @@ if (!class_exists('A2W_OrderFulfillmentController')) {
                 }
             }
             
-            if (empty($orders_data)) {
+            if (empty(A2W_Account::getInstance()->get_purchase_code())) {
+                echo '<div class="empty">' . __("Purchase code not found. Input your purchase code in the plugin settings.", 'ali2woo') . '</div>';
+            } else  if (empty($orders_data)) {
                 echo '<div class="empty">' . __("Orders not found", 'ali2woo') . '</div>';
             } else {
                 foreach ($orders_data as $order_data) {
@@ -828,38 +790,6 @@ if (!class_exists('A2W_OrderFulfillmentController')) {
                         switch ( $field['type'] ) {
                             case 'select':
                                 woocommerce_wp_select( $field );
-                                break;
-                            case 'checkbox':
-                                woocommerce_wp_checkbox( $field );
-                                break;
-                            default:
-                                woocommerce_wp_text_input( $field );
-                                break;
-                        }
-                    }
-                    echo '<h4>Additional fields</h4>';
-                    foreach ( self::$additional_shipping_fields as $key => $field ) {
-                        if ( ! isset( $field['type'] ) ) {
-                            $field['type'] = 'text';
-                        }
-                        if ( ! isset( $field['id'] ) ) {
-                            $field['id'] = '_shipping_' . $key;
-                        }
-
-                        $field_name = 'shipping_' . $key;
-
-                        if ( is_callable( array( $order_data['order'], 'get_' . $field_name ) ) ) {
-                            $field['value'] = $order_data['order']->{"get_$field_name"}( 'edit' );
-                        } else {
-                            $field['value'] = $order_data['order']->get_meta( '_' . $field_name );
-                        }
-
-                        switch ( $field['type'] ) {
-                            case 'select':
-                                woocommerce_wp_select( $field );
-                                break;
-                            case 'checkbox':
-                                woocommerce_wp_checkbox( $field );
                                 break;
                             default:
                                 woocommerce_wp_text_input( $field );
@@ -935,10 +865,10 @@ if (!class_exists('A2W_OrderFulfillmentController')) {
                 // Get order object.
                 $order = wc_get_order( $_POST['order_id'] );
                 $props = array();
-                $shipping_fields = array_merge(self::$shipping_fields, self::$additional_shipping_fields);
+
                 // Update shipping fields.
-                if ( ! empty( $shipping_fields ) ) {
-                    foreach ( $shipping_fields as $key => $field ) {
+                if ( ! empty( self::$shipping_fields ) ) {
+                    foreach ( self::$shipping_fields as $key => $field ) {
                         if ( ! isset( $field['id'] ) ) {
                             $field['id'] = '_shipping_' . $key;
                         }
@@ -1114,16 +1044,11 @@ if (!class_exists('A2W_OrderFulfillmentController')) {
             $items = isset($_POST['items']) && is_array($_POST['items']) ? array_map('intval', $_POST['items']) : array();
 
             if ($order_id && $items) {
-                A2W_Utils::clear_system_error_messages();
+
                 $token = A2W_AliexpressToken::getInstance()->defaultToken();
 
                 if (!$token) {
-                    $msg = sprintf(__('Session token is not found. <a target="_blank" href="%s">Please check our instruction</a>.', 'ali2woo'),
-                    'https://help.ali2woo.com/codex/how-to-get-access-token-from-aliexpress/'
-                    );
-
-                    A2W_Utils::show_system_error_message($msg);
-                    $result = A2W_ResultBuilder::buildError($msg);
+                    $result = A2W_ResultBuilder::buildError(__('Session token is not found. Add a new token in the plugin settings.', 'ali2woo'));
                 } else {
                     $order = new WC_Order($order_id);
                     $order_items = array();

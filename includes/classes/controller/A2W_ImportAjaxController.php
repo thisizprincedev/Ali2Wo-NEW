@@ -15,8 +15,6 @@ if (!class_exists('A2W_ImportAjaxController')) {
     {
         public function __construct()
         {
-            A2W_Utils::clear_system_error_messages();
-
             add_filter('a2w_woocommerce_after_add_product', array($this, 'woocommerce_after_add_product'), 30, 4);
 
             add_action('wp_ajax_a2w_push_product', array($this, 'ajax_push_product'));
@@ -799,18 +797,6 @@ if (!class_exists('A2W_ImportAjaxController')) {
         public function ajax_add_to_import()
         {
             if (isset($_POST['id'])) {
-                A2W_Utils::clear_system_error_messages();
-                $token = A2W_AliexpressToken::getInstance()->defaultToken();
-                if (!$token) {          
-                    $msg = sprintf(__('Session token is not found. <a target="_blank" href="%s">Please check our instruction</a>.', 'ali2woo'),
-                        'https://help.ali2woo.com/codex/how-to-get-access-token-from-aliexpress/'
-                        );
-
-                    A2W_Utils::show_system_error_message($msg);
-                    echo json_encode(A2W_ResultBuilder::buildError($msg));
-                    wp_die();
-                }
-
                 $product = array();
                 $products = a2w_get_transient('a2w_search_result');
 
@@ -830,15 +816,7 @@ if (!class_exists('A2W_ImportAjaxController')) {
                 $post_id = $wpdb->get_var($wpdb->prepare("SELECT post_id FROM $wpdb->postmeta WHERE meta_key='_a2w_external_id' AND meta_value='%s' LIMIT 1", $_POST['id']));
                 if (a2w_get_setting('allow_product_duplication') || !$post_id) {
                     $params = empty($_POST['apd']) ? array() : array('data' => array('apd' => json_decode(stripslashes($_POST['apd']))));
-
-                    $result_currency_exchange_rate = $loader->update_currency_exchange_rate();
-
-                    if ($result_currency_exchange_rate['state'] === 'error'){
-                        echo json_encode(A2W_ResultBuilder::buildError($result_currency_exchange_rate['message']));
-                        wp_die();
-                    }
-
-                    $res = $loader->load_product($_POST['id'], $token['access_token'], $params);
+                    $res = $loader->load_product($_POST['id'], $params);
                     if ($res['state'] !== 'error') {
                         $product = array_replace_recursive($product, $res['product']);
 

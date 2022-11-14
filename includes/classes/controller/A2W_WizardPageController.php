@@ -25,6 +25,13 @@ if (!class_exists('A2W_WizardPageController')) {
                 a2w_settings()->auto_commit(false);
       
                 
+                if (isset($_POST['a2w_item_purchase_code']) && trim($_POST['a2w_item_purchase_code'])){
+                    a2w_set_setting('item_purchase_code', isset($_POST['a2w_item_purchase_code']) ? wp_unslash($_POST['a2w_item_purchase_code']) : '');
+                } else {
+                    $errors['a2w_item_purchase_code'] = esc_html__('required field', 'ali2woo'); 
+                }
+                
+
                 if (isset($_POST['a2w_import_language'])){
                     a2w_set_setting('import_language', isset($_POST['a2w_import_language']) ? wp_unslash($_POST['a2w_import_language']) : 'en');
                 }

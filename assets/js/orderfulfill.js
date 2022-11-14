@@ -93,14 +93,6 @@ jQuery(function($) {
             '_shipping_country': $form.find('#_shipping_country').val(),
             '_shipping_state': $form.find('#_shipping_state').val(),
             '_shipping_phone': $form.find('#_shipping_phone').val(),
-            '_shipping_passport_no': $form.find('#_shipping_passport_no').val(),
-            '_shipping_passport_no_date': $form.find('#_shipping_passport_no_date').val(),
-            '_shipping_passport_organization': $form.find('#_shipping_passport_organization').val(),
-            '_shipping_tax_number': $form.find('#_shipping_tax_number').val(),
-            '_shipping_foreigner_passport_no': $form.find('#_shipping_foreigner_passport_no').val(),
-            '_shipping_is_foreigner': $form.find('#_shipping_is_foreigner').is(':checked')?$form.find('#_shipping_is_foreigner').val():'',
-            '_shipping_vat_no': $form.find('#_shipping_vat_no').val(),
-            '_shipping_tax_company': $form.find('#_shipping_tax_company').val(),
         }
 
         $.post(ajaxurl, data, function(response) {

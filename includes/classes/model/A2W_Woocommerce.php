@@ -520,7 +520,7 @@ if (!class_exists('A2W_Woocommerce')) {
             $result = array("state" => "ok", "message" => "");
 
             $on_not_available_product = a2w_get_setting('on_not_available_product');
-            $on_not_available_variation = (isset($params['on_not_available_variation'])? $params['on_not_available_variation'] : a2w_get_setting('on_not_available_variation'));
+            $on_not_available_variation = a2w_get_setting('on_not_available_variation');
             $disable_add_new_variants = get_post_meta($product_id, '_a2w_disable_add_new_variants', true);
             $on_new_variation_appearance = $disable_add_new_variants ? "nothing" : (isset($params['on_new_variation_appearance'])? $params['on_new_variation_appearance'] : a2w_get_setting('on_new_variation_appearance'));
 
@@ -531,33 +531,6 @@ if (!class_exists('A2W_Woocommerce')) {
                 if ($old_aliexpress_sku_props) {
                     $external_variation_id = $product['id'] . '-' . implode('-', explode(';', $old_aliexpress_sku_props));
                     $old_variations = array($external_variation_id);
-                }
-            }
-  
-            if ($old_variations){
-                //try to match new var to some old var
-                $matched_variations = [];
-                foreach ($product['sku_products']['variations'] as $key => $variation) {
-                    if (!in_array($variation['id'], $old_variations)) {
-                        $variation_parts = explode('-', $variation['id']);
-                        $matched_old_variation = false;
-                        foreach ($old_variations as $old_variation){
-                            if ( A2W_Utils::string_contains_all($old_variation, $variation_parts) ){
-                                $matched_old_variation = $old_variation;
-                                break;
-                            }
-                        }
-
-                        if ($matched_old_variation !== false){
-                            $matched_variations[] = array('new' => $variation['id'], 'existed' => $matched_old_variation);
-                            $product['sku_products']['variations'][$key]['id'] = $matched_old_variation;
-                        }
-                    }
-                }
-
-                if (!empty($matched_variations)){
-                    a2w_error_log('we matched the following vars during sync:');
-                    a2w_error_log(print_r($matched_variations, true));
                 }
             }
 
@@ -1021,7 +994,6 @@ if (!class_exists('A2W_Woocommerce')) {
 
             $disable_add_new_variants = get_post_meta($product_id, '_a2w_disable_add_new_variants', true);
             $on_new_variation_appearance = $disable_add_new_variants ? "nothing" : (isset($params['on_new_variation_appearance'])? $params['on_new_variation_appearance'] : a2w_get_setting('on_new_variation_appearance'));
-            $on_not_available_variation = (isset($params['on_not_available_variation'])? $params['on_not_available_variation'] : a2w_get_setting('on_not_available_variation'));
 
             $localCurrency = strtoupper(a2w_get_setting('local_currency'));
 
@@ -1283,6 +1255,8 @@ if (!class_exists('A2W_Woocommerce')) {
                         $has_new_variants = array('variation_id' => $variation['id']);
                         a2w_info_log('Has new variant! Variant ID: ' . $variation['id']);
                     }
+
+                    $on_not_available_variation = a2w_get_setting('on_not_available_variation');
 
                     if ($need_process) {
                         $tmp_variation = array(
@@ -1589,6 +1563,7 @@ if (!class_exists('A2W_Woocommerce')) {
                             $backorders = $var_product->get_backorders();
                             $backorders = $backorders ? $backorders : 'no';
 
+                            $on_not_available_variation = a2w_get_setting('on_not_available_variation');
                             $var_product->set_status(!$quantity && $on_not_available_variation === 'zero_and_disable' ? 'private' : 'publish');
 
                             $var_product->set_backorders($backorders);
@@ -1634,6 +1609,7 @@ if (!class_exists('A2W_Woocommerce')) {
                 }
 
                 // delete old variations
+                $on_not_available_variation = a2w_get_setting('on_not_available_variation');
                 foreach ($old_variations as $old_variation) {
                     if ($on_not_available_variation === 'trash' || $old_variation['external_variation_id'] == 'delete') {
                         $GLOBALS['a2w_autodelete_variaton_lock'] = true;
@@ -1880,14 +1856,10 @@ if (!class_exists('A2W_Woocommerce')) {
             a2w_init_error_handler();
             try {
                 $result = A2W_ResultBuilder::buildOk();
-                A2W_Utils::clear_system_error_messages();
+
                 $token = A2W_AliexpressToken::getInstance()->defaultToken();
                 if (!$token) {
-                    $msg = sprintf(__('Session token is not found. <a target="_blank" href="%s">Please check our instruction</a>.', 'ali2woo'),
-                        'https://help.ali2woo.com/codex/how-to-get-access-token-from-aliexpress/'
-                        );
-                    A2W_Utils::show_system_error_message($msg);
-                    return A2W_ResultBuilder::buildError($msg);
+                    return A2W_ResultBuilder::buildError(__('Session token is not found. Add a new token in the plugin settings.', 'ali2woo'));
                 }
 
                 $order = wc_get_order($order_id);
@@ -2210,16 +2182,6 @@ if (!class_exists('A2W_Woocommerce')) {
                 $address2 = $order->get_billing_address_2();
                 $post_code = $order->get_billing_postcode();
             }
-
-            $passport_no = $order->get_meta('_shipping_passport_no');
-            $passport_no_date = $order->get_meta('_shipping_passport_no_date');
-            $passport_organization = $order->get_meta('_shipping_passport_organization');
-            $tax_number = $order->get_meta('_shipping_tax_number');
-            $foreigner_passport_no = $order->get_meta('_shipping_foreigner_passport_no');
-            $is_foreigner = $order->get_meta('_shipping_is_foreigner');
-            $vat_no = $order->get_meta('_shipping_vat_no');
-            $tax_company = $order->get_meta('_shipping_tax_company');
-
             $woo_country = $shipping_country ? $shipping_country : $billing_country;
             $country = A2W_ProductShippingMeta::normalize_country($woo_country);
             $country_name = A2W_Country::get_country($country);
@@ -2372,17 +2334,7 @@ if (!class_exists('A2W_Woocommerce')) {
                 'cpf' => '',
                 'rutNo' => '',
                 'fromOrderId' => $order->get_id(),
-                // aditional fields
-                'passport_no' => $passport_no,
-                'passport_no_date' => $passport_no_date,
-                'passport_organization' => $passport_organization,
-                'tax_number' => $tax_number,
-                'foreigner_passport_no' => $foreigner_passport_no,
-                'is_foreigner' => $is_foreigner,
-                'vat_no' => $vat_no,
-                'tax_company' => $tax_company,
             );
-
             if ($country === 'BR') {
                 $result['cpf'] = $order->get_shipping_company();
                 if (!$result['cpf']) {

@@ -348,10 +348,16 @@ if (!class_exists('A2W_SettingPageAjaxController')) {
             $result = array('state' => 'ok', 'url' => 'https://oauth.aliexpress.com/authorize?response_type=code&client_id=33446317&view=web&sp=ae&redirect_uri=https://api.ali2woo.com/v1/auth.php&state=');
       
              
+            $pc = a2w_get_setting('item_purchase_code');
+            if ($pc) {
+                // $pc = md5($pc);
                 $result = array(
                     'state' => 'ok',
                     'url' => 'https://oauth.aliexpress.com/authorize?response_type=code&client_id=33446317&view=web&sp=ae&redirect_uri=https://api.ali2woo.com/v1/auth.php&state=' . $pc,
                 );
+            } else {
+                $result = array('state' => 'error', 'message' => 'Input your purchase code in the plugin settings');
+            }
              
             echo json_encode($result);
             wp_die();
